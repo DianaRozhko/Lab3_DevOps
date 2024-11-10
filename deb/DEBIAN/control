@@ -1,0 +1,5 @@
+Package: program
+Version: 1.0
+Architecture: arm64
+Maintainer: rozhko.diana06@gmail.com
+Description: This code allows you to approximately calculate the value of the hyperbolic sine sh(x) for a given number of terms of the series.
