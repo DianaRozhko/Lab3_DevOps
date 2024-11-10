@@ -7,7 +7,7 @@ EXECUTABLE = program
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES) $(HEADERS)
- $(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^
 
-clean:
- rm -f $(EXECUTABLE) *.o
+clean:             
+	rm -f $(EXECUTABLE) *.o
