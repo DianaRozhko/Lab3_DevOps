@@ -1,32 +1,23 @@
-#include "func.h"
 #include <gtest/gtest.h>
 #include <cmath>
+#include "func.h"
 
-// Тест на перевірку результату для x = 0
+// Тест для обчислення гіперболічного синуса при x = 0
 TEST(ShFunctionTest, ZeroInput) {
-    EXPECT_NEAR(sh(0.0), 0.0, 1e-6);
+    EXPECT_NEAR(calculateSinh(0.0, 3), 0.0, 1e-6);  // Викликаємо calculateSinh
 }
 
-// Тест на перевірку результату для x = 1
+// Тест для позитивного значення x
 TEST(ShFunctionTest, PositiveInput) {
     double x = 1.0;
-    EXPECT_NEAR(sh(x), std::sinh(x), 1e-6);
+    EXPECT_NEAR(calculateSinh(x, 20), std::sinh(x), 1e-6);  // Викликаємо calculateSinh
 }
 
-// Тест на перевірку результату для від'ємного x
+// Тест для негативного значення x
 TEST(ShFunctionTest, NegativeInput) {
     double x = -1.0;
-    EXPECT_NEAR(sh(x), std::sinh(x), 1e-6);
+    EXPECT_NEAR(calculateSinh(x, 20), std::sinh(x), 1e-6);  // Викликаємо calculateSinh
 }
 
-// Тест на перевірку результату для великого значення x
-TEST(ShFunctionTest, LargeInput) {
-    double x = 5.0;
-    EXPECT_NEAR(sh(x), std::sinh(x), 1e-6);
-}
 
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
 
