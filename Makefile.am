@@ -45,7 +45,3 @@ docker-clean:
 	@echo "Cleaning up Docker images..."
 	@docker rmi $(PACKAGE):$(VERSION)
 
-# Інші мети
-install:  # Мета для встановлення програми
-	make DESTDIR=$(CURDIR)/deb install
-

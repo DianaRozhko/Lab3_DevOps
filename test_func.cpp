@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <cmath>
+#include <chrono>
 #include "func.h"
 
 // Тест для обчислення гіперболічного синуса при x = 0
@@ -18,6 +19,5 @@ TEST(ShFunctionTest, NegativeInput) {
     double x = -1.0;
     EXPECT_NEAR(calculateSinh(x, 20), std::sinh(x), 1e-6);  // Викликаємо calculateSinh
 }
-
 
 

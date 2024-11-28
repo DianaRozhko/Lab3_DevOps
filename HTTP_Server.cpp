@@ -1,100 +1,346 @@
-#include <iostream>
+#include <stdio.h>
+#include "func.h"
+#include <sys/socket.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <sys/sendfile.h>
+#include <sys/stat.h>
+#include <errno.h>
+
 #include <vector>
+#include <random>
 #include <chrono>
 #include <algorithm>
-#include <cstring>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/sendfile.h>
-#include <sys/socket.h>
-#include "func.h" // функції для обчислень
 
 #define PORT 8081
 
-void sendGETresponse(int fd, const char *response);
-int CreateHTTPserver();
+void handleComputeRequest(int clientSocket) {
+    // Початок вимірювання часу
+    auto start = std::chrono::high_resolution_clock::now();
 
-int CreateHTTPserver() {
-    int server_fd, new_socket;
+    // Обчислення масиву значень
+    std::vector<double> values = calculateValues();
+
+    // Сортування масиву
+    std::sort(values.begin(), values.end());
+
+    // Кінець вимірювання часу
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+    // Формування відповіді
+    char responseBody[100];
+    sprintf(responseBody, "Time elapsed: %lld ms", duration.count());
+
+    char responseHeader[200];
+    sprintf(responseHeader, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %ld\r\n\r\n", strlen(responseBody));
+
+    // Надсилання відповіді клієнту
+    write(clientSocket, responseHeader, strlen(responseHeader));
+    write(clientSocket, responseBody, strlen(responseBody));
+
+    printf("Response sent: %s\n", responseBody);
+}
+
+
+void sendGETresponse(int fd, char strFilePath[], char strResponse[]);
+void sendPUTresponse(int fd, char strFilePath[], char strBody[], char strResponse[]);
+void sendHEADresponse(int fd, char strFilePath[], char strResponse[]);
+
+char HTTP_200HEADER[] = "HTTP/1.1 200 Ok\r\n";
+char HTTP_201HEADER[] = "HTTP/1.1 201 CREATED\r\n";
+char HTTP_404HEADER[] = "HTTP/1.1 404 Not Found\r\n";
+char HTTP_400HEADER[] = "HTTP/1.1 400 Bad request\r\n";
+
+
+
+int CreateHTTPserver()
+{
+    int connectionSocket, clientSocket, pid; 
     struct sockaddr_in address;
-    int opt = 1;
     int addrlen = sizeof(address);
-
-    // Створення сокету
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("Socket failed");
+    
+    if ((connectionSocket = socket(AF_INET, SOCK_STREAM, 0)) == 0)
+    {
+        perror("socket open failed\n");
         exit(EXIT_FAILURE);
     }
-
-    // Налаштування сокету
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-        perror("Setsockopt failed");
-        exit(EXIT_FAILURE);
-    }
-
-    address.sin_family = AF_INET;
+    
+    address.sin_family      = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
-    address.sin_port = htons(PORT);
+    address.sin_port        = htons( PORT );
 
-    // Прив'язка сокету
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        perror("Bind failed");
+    memset(address.sin_zero, '\0', sizeof address.sin_zero);
+    
+    if (bind(connectionSocket, (struct sockaddr *)&address, sizeof(address)) < 0)
+    {
+        perror("socket bind failed\n");
+        close(connectionSocket);
         exit(EXIT_FAILURE);
     }
-
-    // Очікування підключення
-    if (listen(server_fd, 3) < 0) {
-        perror("Listen failed");
+    
+    if (listen(connectionSocket, 10) < 0)  // queue up up to 10 connections ready for accept
+    {
+        perror("socket listen failed\n");
         exit(EXIT_FAILURE);
     }
-
-    while (true) {
-        printf("Waiting for connection...\n");
-
-        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
-            perror("Accept failed");
+    
+    while(1)
+    {
+        printf("\n+++++++ Waiting for a new connection ++++++++\n\n");
+        
+        if ((clientSocket = accept(connectionSocket, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0)
+        {
+            perror("Error accept()");
             exit(EXIT_FAILURE);
         }
+        
+      
+  // Create child process to handle request from different client
+  pid = fork();
+  
+  if (pid < 0)  
+  {
+    perror("Error on fork");
+    exit(EXIT_FAILURE);
+  }   
 
-        char buffer[30000] = {0};
-        read(new_socket, buffer, 30000);
-
-        // Перевірка запиту
-        if (strncmp(buffer, "GET /compute", 12) == 0) {
-            // Вимірювання часу
-            auto start = std::chrono::high_resolution_clock::now();
-
-            // Виклик функції для обчислень
-            std::vector<double> values = calculateValues(); // calculateValues - функція з `func.cpp`
-            std::sort(values.begin(), values.end());
-
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-            // Формування відповіді
-            std::string response = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n";
-            response += "Computation completed in " + std::to_string(duration) + " ms\n";
-            response += "Sorted values: ";
-            for (double value : values) {
-                response += std::to_string(value) + " ";
-            }
-
-            sendGETresponse(new_socket, response.c_str());
-        } else {
-            const char *notFound = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nInvalid request.";
-            sendGETresponse(new_socket, notFound);
+  if (pid == 0) // child process
+  {
+      char  buffer[30000] = {0};
+            char* ptrBuffer = &buffer[0];
+            
+            int iBytesRead = read(clientSocket, ptrBuffer, 30000);
+            printf("\nClient message of %d bytes:\n%s\n", iBytesRead, buffer);
+            
+            if (iBytesRead == 0)
+            {
+    printf("Client closed connection prematurely\n");
+    close(clientSocket);
+    continue;
         }
 
-        close(new_socket);
+            printf("\nParsing request...\n");
+
+            // Parse Request method
+            char strHTTP_requestMethod[10] = {0};
+            char* pch = strchr(ptrBuffer, ' ');
+            strncpy(strHTTP_requestMethod, ptrBuffer, pch-ptrBuffer);
+            printf("Client method: %s\n", strHTTP_requestMethod);
+            
+            ptrBuffer = pch+1;
+
+            // Parse Request path
+            char strHTTP_requestPath[200] = {0};
+            pch = strchr(ptrBuffer, ' ');
+            strncpy(strHTTP_requestPath, ptrBuffer, pch-ptrBuffer);
+            printf("Client asked for path: %s\n", strHTTP_requestPath);
+            
+            // Parse Request extension
+            char strHTTPreqExt[200] = {0};
+            pch = strrchr(strHTTP_requestPath, '.');
+            if (pch != NULL) strcpy(strHTTPreqExt, pch+1);
+            
+
+            char strFilePath[500] = {0};
+            char strResponse[500] = {0};
+
+
+            if (!strcmp(strHTTP_requestMethod, "GET"))
+            {
+                if(!strcmp(strHTTP_requestPath, "/"))
+                {
+                    // strHTTP_requestPath == "/"  --> Send index.html file
+                    sprintf(strFilePath, "./index.html");
+                    sprintf(strResponse, "%s%s", HTTP_200HEADER, "Content-Type: text/html\r\n");sendGETresponse(clientSocket, strFilePath, strResponse);
+                }
+                else if(!strcmp(strHTTP_requestPath, "/compute"))
+    {
+      
+      auto t1 = std::chrono::high_resolution_clock::now();  
+
+      std::vector<int> aValues;
+      // Mersenne Twister random engine
+      std::mt19937 mtre {123};
+      std::uniform_int_distribution<int> distr {0, 1000000};
+
+      for (int i=0; i<1000000; i++) {
+        aValues.push_back(distr(mtre));
+      }
+
+      for (int i=0; i<500; i++)
+      {
+        sort(begin(aValues), end(aValues));
+        reverse(begin(aValues), end(aValues));
+      }
+
+      
+      auto t2 = std::chrono::high_resolution_clock::now();
+      auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1);
+
+      int iMS = int_ms.count();
+
+      char strTimeEllapsed[20];
+      sprintf(strTimeEllapsed, "%i", iMS);
+
+      sprintf(strResponse, "%sContent-type: text/html\r\nContent-Length: %ld\r\n\r\n", HTTP_200HEADER, strlen(strTimeEllapsed));
+      
+      write(clientSocket, strResponse, strlen(strResponse));
+      printf("\nResponse: \n%s\n", strResponse);
+
+      write(clientSocket, strTimeEllapsed, strlen(strTimeEllapsed));
+      printf("%s\n", strTimeEllapsed);
     }
+    else if ((!strcmp(strHTTPreqExt, "JPG")) || (!strcmp(strHTTPreqExt, "jpg")))
+                {
+                    //send image to client
 
-    close(server_fd);
+                    sprintf(strFilePath, ".%s", strHTTP_requestPath);
+                    sprintf(strResponse, "%s%s", HTTP_200HEADER, "Content-Type: image/jpeg\r\n");
+
+                    sendGETresponse(clientSocket, strFilePath, strResponse);
+                }
+                else if (!strcmp(strHTTPreqExt, "ico"))
+                {
+                    //https://www.cisco.com/c/en/us/support/docs/security/web-security-appliance/117995-qna-wsa-00.html
+
+                    sprintf(strFilePath, "./img/favicon.png");
+                    sprintf(strResponse, "%s%s", HTTP_200HEADER, "Content-Type: image/vnd.microsoft.icon\r\n");
+
+                    sendGETresponse(clientSocket, strFilePath, strResponse);
+                }
+                else if (!strcmp(strHTTPreqExt, "js"))
+                {
+                    sprintf(strFilePath, ".%s", strHTTP_requestPath);
+                    sprintf(strResponse, "%s%s", HTTP_200HEADER, "Content-Type: text/javascript\r\n");
+
+                    sendGETresponse(clientSocket, strFilePath, strResponse);
+                }
+                else if (!strcmp(strHTTPreqExt, "png"))
+                {
+                    sprintf(strFilePath, ".%s", strHTTP_requestPath);
+                    sprintf(strResponse, "%s%s", HTTP_200HEADER, "Content-Type: image/png\r\nCache-Control: max-age=3600\r\n");
+
+                    sendGETresponse(clientSocket, strFilePath, strResponse);
+                }
+                else  // unknown mime type
+                {
+                    sprintf(strFilePath, ".%s", strHTTP_requestPath);
+                    sprintf(strResponse, "%s%s", HTTP_200HEADER, "Content-Type: text/plain\r\n");
+
+                    sendGETresponse(clientSocket, strFilePath, strResponse);
+                }
+            }
+            else if (!strcmp(strHTTP_requestMethod, "PUT"))
+            {
+    // search for body
+    ptrBuffer = strstr(buffer, "\r\n\r\n");
+    ptrBuffer +=4;
+        
+    if (ptrBuffer)
+    {
+                    sprintf(strFilePath, ".%s", strHTTP_requestPath);
+          sprintf(strResponse, "%s", HTTP_201HEADER);
+          
+                    sendPUTresponse(clientSocket, strFilePath, ptrBuffer, strResponse);
+    }
+            }
+            close(clientSocket);
+            
+      return 0;
+        }
+  else // parent process branch
+  {
+    printf(">>>>>>>> Forked a child with pid: %d <<<<<<<<<<\n", pid);
+
+    close(clientSocket);
+  }
+    }
+    
+    close(connectionSocket);
+    
     return 0;
+}void sendGETresponse(int fdSocket, char strFilePath[], char strResponse[])
+{
+    int fdFile = open(strFilePath, O_RDONLY);
+    if (fdFile < 0)
+    {
+  sprintf(strResponse, "%s", HTTP_404HEADER);
+  write(fdSocket, strResponse, strlen(strResponse));
+    
+        printf("\nCannot open file path : %s with error %d\n", strFilePath, fdFile);
+        printf("Response:\n%s\n", strResponse); 
+        
+        return;
+    }
+     
+    struct stat stat_buf;  // hold information about input file
+    fstat(fdFile, &stat_buf);
+    
+    int file_total_size = stat_buf.st_size;
+    int block_size      = stat_buf.st_blksize;
+    
+    // append another header
+    char* strOffset = strResponse + strlen(strResponse);
+    sprintf(strOffset, "Content-Length: %d\r\n\r\n", file_total_size);
+
+    printf("\nResponse:\n%s\n", strResponse); 
+    int iRes = write(fdSocket, strResponse, strlen(strResponse));
+    if (iRes < 0)
+    {
+        printf("\nCannot write to client socket with error %d\n", iRes);
+        return;
+    }
+    
+  while(file_total_size > 0)
+  {
+    int iToSend = ((file_total_size < block_size) ? file_total_size : block_size);
+    int done_bytes = sendfile(fdSocket, fdFile, NULL, iToSend);
+    if (done_bytes < 0)
+    {
+      printf("\nCannot write to client socket with error %d\n", done_bytes);
+      return;
+    }
+      
+    file_total_size -= done_bytes;
+  }
+  close(fdFile);
 }
 
-void sendGETresponse(int fd, const char *response) {
-    write(fd, response, strlen(response));
-}
 
+void sendPUTresponse(int fdSocket, char strFilePath[], char strBody[], char strResponse[])
+{
+    int fdFile = open(strFilePath, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+    if (fdFile < 0)
+    {
+  sprintf(strResponse, "%s", HTTP_400HEADER);
+  write(fdSocket, strResponse, strlen(strResponse));
+    
+        printf("\nCannot save file path : %s with error %d\n", strFilePath, fdFile);
+        printf("Response:\n%s\n", strResponse); 
+        
+        return;
+    }
+    
+    printf("\nResponse:\n%s\n", strResponse); 
+    int iRes = write(fdSocket, strResponse, strlen(strResponse));
+    if (iRes < 0)
+    {
+        printf("\nCannot write to client socket with error %d\n", iRes);
+        return;
+    }
+    
+    iRes = write(fdFile, strBody, strlen(strBody));
+    if (iRes < 0)
+    {
+        printf("\nCannot write to file %s with error %d\n", strFilePath, fdFile);
+        
+        return;
+    }
+    
+    close(fdFile);
+}
