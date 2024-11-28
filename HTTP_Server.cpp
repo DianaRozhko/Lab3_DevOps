@@ -16,10 +16,6 @@
 void sendGETresponse(int fd, const char *response);
 int CreateHTTPserver();
 
-int main() {
-    return CreateHTTPserver();
-}
-
 int CreateHTTPserver() {
     int server_fd, new_socket;
     struct sockaddr_in address;
