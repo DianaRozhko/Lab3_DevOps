@@ -1,10 +1,10 @@
-name: Test CI
+name: Test HTTP Server CI
 
 on:
   push:
-    branches: [ "branchAutoTest" ]
+    branches: [ "branchHTTPserver" ]
   pull_request:
-    branches: [ "branchAutoTest" ]
+    branches: [ "branchHTTPserver" ]
 
 jobs:
   build:
@@ -13,18 +13,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y build-essential libgtest-dev cmake
-
-      - name: Configure and build the project
+      - name: Build Docker image
         run: |
-          rm -rf build
-          mkdir build
-          cd build
-          cmake ..
-          make
+          echo "FROM ubuntu:latest" > Dockerfile
+          echo "MAINTAINER rozhko.diana06@gmail.com" >> Dockerfile
+          echo "WORKDIR /app" >> Dockerfile
+          echo "COPY . /app" >> Dockerfile
+          echo "RUN apt-get update && apt-get install -y g++ make" >> Dockerfile
+          echo "RUN g++ -o http_server HTTP_Server.cpp func.cpp main_Server.cpp -lpthread" >> Dockerfile
+          echo "ENTRYPOINT [\"/app/http_server\"]" >> Dockerfile
+          docker build -t dianet1306/http_server:latest .
 
-      - name: Run test
+      - name: Log in to DockerHub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+
+      - name: Push Docker image
+        run: docker push dianet1306/http_server:latest
+
+      - name: Run Docker container
         run: |
-          cd build
-          ./test_program
+          docker run -d --name http_server_instance -p 8080:8080 diana089/http_server:latest
+          docker ps

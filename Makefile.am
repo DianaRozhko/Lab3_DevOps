@@ -1,47 +1,41 @@
-PACKAGE = program
-VERSION = 1.0
-PACKAGE_BUGREPORT = rozhko.diana06@gmail.com
+.PHONY: deb debug docker docker-push
 
-AUTOMAKE_OPTIONS = foreign subdir-objects
+# Відображення інформації про пакет
+debug:
+	@echo "Package: $(PACKAGE)"
+	@echo "Version: $(VERSION)"
 
-# Основні програми та тести
-bin_PROGRAMS = program
-program_SOURCES = main.cpp func.cpp
+# Побудова DEB-пакету
+deb:
+	@echo "Building DEB package..."
+	dpkg-deb --build deb
+	echo Maintainer: $(PACKAGE_BUGREPORT) >> $(CTRLF_NAME)
+	echo -n "Description: " >> $(CTRLF_NAME)
+	echo "calculation software" >> $(CTRLF_NAME)
+	make DESTDIR=$(CURDIR)/deb install
+	@echo "Creating Docker image..."
+	make docker
 
-check_PROGRAMS = test_program
-test_program_SOURCES = test_func.cpp func.cpp
-
-# Ціль для створення Docker-образу
-docker: dockerfile docker-build
-
-# Створення Dockerfile для побудови образу
-dockerfile:
-	@echo "Generating Dockerfile..."
-	@echo "FROM ubuntu:latest" > Dockerfile
-	@echo "MAINTAINER $(PACKAGE_BUGREPORT)" >> Dockerfile
-	@echo "COPY deb /opt/$(PACKAGE)" >> Dockerfile
-	@echo "RUN apt-get update && apt-get install -y /opt/$(PACKAGE)" >> Dockerfile
-	@echo "ENTRYPOINT [\"/opt/$(PACKAGE)/bin/program\"]" >> Dockerfile
-
-# Побудова Docker-образу
-docker-build:
-	@echo "Building Docker image $(PACKAGE):$(VERSION)..."
+# Генерація Dockerfile та побудова Docker-образу
+docker:
+	@echo "Building Docker image..."
+	echo "FROM ubuntu:latest" > Dockerfile
+	echo "MAINTAINER $(PACKAGE_BUGREPORT)" >> Dockerfile
+	echo "COPY deb /opt/$(PACKAGE)" >> Dockerfile
+	echo "RUN apt-get update && apt-get install -y ./opt/$(PACKAGE)" >> Dockerfile
+	echo "ENTRYPOINT [\"/opt/$(PACKAGE)/bin/program\"]" >> Dockerfile
 	docker build -t $(PACKAGE):$(VERSION) .
 
-# Ціль для пушу Docker-образу до DockerHub
+# Завантаження Docker-образу в DockerHub
 docker-push:
 	@echo "Pushing Docker image to DockerHub..."
 	@if [ -z "$(DOCKER_USER)" ] || [ -z "$(DOCKER_PASS)" ]; then \
-		echo "Please set DOCKER_USER and DOCKER_PASS environment variables."; \
-		exit 1; \
-	fi
-	@echo "$(DOCKER_PASS)" | docker login -u "$(DOCKER_USER)" --password-stdin
-	@docker tag $(PACKAGE):$(VERSION) $(DOCKER_USER)/$(PACKAGE):$(VERSION)
-	@docker push $(DOCKER_USER)/$(PACKAGE):$(VERSION)
-	@docker logout
+    echo "Please set DOCKER_USER and DOCKER_PASS environment variables"; \
+    exit 1; \
+  fi
+	echo "$(DOCKER_PASS)" | docker login -u "$(DOCKER_USER)" --password-stdin
+	docker tag $(PACKAGE):$(VERSION) $(DOCKER_USER)/$(PACKAGE):$(VERSION)
+	docker push $(DOCKER_USER)/$(PACKAGE):$(VERSION)
+	docker logout
 
-# Очищення Docker-образу після завершення роботи
-docker-clean:
-	@echo "Cleaning up Docker images..."
-	@docker rmi $(PACKAGE):$(VERSION)
 

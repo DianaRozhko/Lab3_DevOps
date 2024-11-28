@@ -34,7 +34,7 @@ void handleComputeRequest(int clientSocket) {
 
     // Формування відповіді
     char responseBody[100];
-    sprintf(responseBody, "Time elapsed: %lld ms", duration.count());
+    sprintf(responseBody, "Time elapsed: %ld ms", duration.count());
 
     char responseHeader[200];
     sprintf(responseHeader, "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %ld\r\n\r\n", strlen(responseBody));
@@ -168,7 +168,7 @@ int CreateHTTPserver()
       std::mt19937 mtre {123};
       std::uniform_int_distribution<int> distr {0, 1000000};
 
-      for (int i=0; i<1000000; i++) {
+      for (int i=0; i<100000; i++) {
         aValues.push_back(distr(mtre));
       }
 
