@@ -20,9 +20,9 @@ jobs:
           echo "WORKDIR /app" >> Dockerfile
           echo "COPY . /app" >> Dockerfile
           echo "RUN apt-get update && apt-get install -y g++ make" >> Dockerfile
-          echo "RUN g++ -o http_server HTTP_Server.cpp func.cpp main_Server.cpp -lpthread" >> Dockerfile
+          echo "RUN g++ -o server HTTP_Server.cpp func.cpp mainServer.cpp -lpthread" >> Dockerfile
           echo "ENTRYPOINT [\"/app/http_server\"]" >> Dockerfile
-          docker build -t dianet1306/http_server:latest .
+          docker build -t diana089/http_server:latest .
 
       - name: Log in to DockerHub
         env:
@@ -31,7 +31,7 @@ jobs:
         run: echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
 
       - name: Push Docker image
-        run: docker push dianet1306/http_server:latest
+        run: docker push diana089/http_server:latest
 
       - name: Run Docker container
         run: |
