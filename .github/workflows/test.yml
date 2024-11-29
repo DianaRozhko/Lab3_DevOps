@@ -35,5 +35,5 @@ jobs:
 
       - name: Run Docker container
         run: |
-          docker run -d --name http_server_instance -p 8081:8081 diana089/http_server:latest
+          docker run -d --name http_server_instance -p 8080:8080 diana089/http_server:latest
           docker ps
