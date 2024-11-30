@@ -2,16 +2,14 @@
 FROM gcc:latest
 
 # Створення робочої директорії
-WORKDIR /app
+WORKDIR /server
 
 # Копіювання всіх файлів у контейнер
 COPY . /server
 
 # Компіляція програми
-RUN g++ -o server HTTP_Server.cpp func.cpp mainServer.cpp -lpthread
-
-# Вказівка на порт для прослуховування
-EXPOSE 8081
-
-# Запуск сервера
-CMD ["./server"]
+RUN apt-get update && apt-get install -y g++ make build-essential
+RUN ls -la /server
+RUN g++ -Wall -o server HTTP_Server.cpp func.cpp mainServer.cpp -lpthread
+RUN chmod +x ./server
+ENTRYPOINT ["./server"]
