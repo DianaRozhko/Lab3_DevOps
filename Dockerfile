@@ -5,7 +5,7 @@ FROM gcc:latest
 WORKDIR /app
 
 # Копіювання всіх файлів у контейнер
-COPY . /app
+COPY . /server
 
 # Компіляція програми
 RUN g++ -o server HTTP_Server.cpp func.cpp mainServer.cpp -lpthread
