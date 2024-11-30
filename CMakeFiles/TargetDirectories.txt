@@ -1,0 +1,4 @@
+/home/diana/Lab3_DevOps/CMakeFiles/program.dir
+/home/diana/Lab3_DevOps/CMakeFiles/test_program.dir
+/home/diana/Lab3_DevOps/CMakeFiles/edit_cache.dir
+/home/diana/Lab3_DevOps/CMakeFiles/rebuild_cache.dir
