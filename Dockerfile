@@ -14,4 +14,4 @@ RUN g++ -o server HTTP_Server.cpp func.cpp mainServer.cpp -lpthread
 EXPOSE 8081
 
 # Запуск сервера
-CMD ["./server"]
+CMD ["./http_server"]
