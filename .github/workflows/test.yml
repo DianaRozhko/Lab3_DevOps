@@ -22,7 +22,6 @@ jobs:
           echo "WORKDIR /home/app" >> Dockerfile
           echo "COPY . /server" >> Dockerfile
           echo "RUN apt-get update && apt-get install -y g++ make" >> Dockerfile
-          echo "RUN g++ -o server HTTP_Server.cpp func.cpp mainServer.cpp -lpthread" >> Dockerfile
           echo "RUN chmod +x ./server" >> Dockerfile
           echo "ENTRYPOINT [\"/server\"]" >> Dockerfile
           docker build -t diana089/http_server:latest .
