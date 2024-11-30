@@ -12,18 +12,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+
 
       - name: Build Docker image
         run: |
           echo "FROM ubuntu:latest" > Dockerfile
           echo "MAINTAINER rozhko.diana06@gmail.com" >> Dockerfile
-          echo "WORKDIR /home/app" >> Dockerfile
+          echo "WORKDIR /server" >> Dockerfile
           echo "COPY . /server" >> Dockerfile
-          echo "RUN apt-get update && apt-get install -y g++ make" >> Dockerfile
+          echo "RUN apt-get update && apt-get install -y libc6 libstdc++6" >> Dockerfile
           echo "RUN chmod +x ./server" >> Dockerfile
-          echo "ENTRYPOINT [\"/server\"]" >> Dockerfile
+          echo "ENTRYPOINT [\"./server\"]" >> Dockerfile
           docker build -t diana089/http_server:latest .
 
       - name: Log in to DockerHub
