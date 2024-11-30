@@ -1,3 +1,4 @@
+
 .PHONY: deb debug docker docker-push
 
 # Відображення інформації про пакет
