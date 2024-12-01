@@ -24,6 +24,6 @@ jobs:
           ./configure   
           cmake .              
           make               
-      - name: Compile test_func.cpp
+      - name: Compile test_server.cpp
         run: |
-          g++ -o build/test_server test_func.cpp func.cpp
+          g++ -o build/test_server test_server.cpp 
