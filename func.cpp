@@ -1,12 +1,15 @@
 #include "func.h"
-#include <cmath>  // для використання функції pow
+#include <cmath>
 #include <iostream>
-#include <vector>
-// Функція для обчислення факторіалу
-unsigned long long factorial(int n) {
+
+// Функція для обчислення факторіала з перевіркою на переповнення
+double safeFactorial(int n) {
     unsigned long long result = 1;
     for (int i = 2; i <= n; ++i) {
         result *= i;
+        if (result == 0) {  // Перевірка на переповнення
+            return -1;  // Повідомлення про переповнення
+        }
     }
     return result;
 }
@@ -15,18 +18,19 @@ unsigned long long factorial(int n) {
 double calculateSinh(double x, int terms) {
     double sum = 0.0;
     for (int n = 0; n < terms; ++n) {
-        sum += pow(x, 2 * n + 1) / factorial(2 * n + 1);
+        double term = pow(x, 2 * n + 1)/ safeFactorial(2 * n + 1);
+      
+        sum += term;
     }
     return sum;
 }
 
 // Функція для обчислення значень
-std::vector<double> calculateValues() {
+std::vector<double> calculateValues(int terms) {
     std::vector<double> values;
-    for (double x = -5.0; x <= 5.0; x += 0.1) {
-        values.push_back(calculateSinh(x, 10));  // Викликаємо calculateSinh для кожного значення x
+    for (int i=1; i <= terms; ++i) {
+	   double value=1.0 / safeFactorial(i);
+	   values.push_back(value); 
     }
     return values;
 }
-
-
