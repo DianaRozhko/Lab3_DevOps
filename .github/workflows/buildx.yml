@@ -23,6 +23,7 @@ jobs:
 
       - name: Build Dockerfile
         run: |
+          autoreconf -i
           ./configure
           make
     
