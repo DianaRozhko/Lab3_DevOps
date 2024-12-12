@@ -36,7 +36,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: {{ secrets.DOCKER_USERNAME }}/http_server:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/http_server:latest
           platforms: linux/amd64, linux/arm64
 
       - name: Run Docker container
