@@ -34,7 +34,7 @@ jobs:
 
       - name: Build and Push Docker image
         uses: docker/build-push-action@v4
-        with: 
+        with:
           push: true
           tags: {{ secrets.DOCKER_USERNAME }}/http_server:latest
           platforms: linux/amd64, linux/arm64
