@@ -1,14 +1,21 @@
-# Базовий образ
-FROM gcc:latest
+FROM gcc:latest AS builder
 
-# Створення робочої директорії
 WORKDIR /server
 
-# Копіювання всіх файлів у контейнер
-COPY . /server
+RUN apt-get update && apt-get install -y git g++ make autoconf  
 
-# Компіляція програми
-RUN apt-get update && apt-get install -y g++ make build-essential
-RUN ls -la /server
-RUN chmod +x ./server
-ENTRYPOINT ["./server"]
+RUN git clone https://github.com/DianaRozhko/Lab3_DevOps.git . 
+RUN git checkout branchHTTPserver 
+RUN autoreconf -i 
+RUN ./configure 
+RUN make
+
+FROM alpine:latest
+
+WORKDIR /server
+
+COPY --from=builder /server/server .
+
+RUN apk add --no-cache libstdc++
+
+CMD ["./server"]
