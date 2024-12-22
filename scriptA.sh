@@ -45,7 +45,7 @@ check_cpu_usage() {
     local usage_threshold="$2"
 
     cpu_usage=$(docker stats --no-stream --format "{{.CPUPerc}}" "$container_name" | tr -d '%')
-    cpu_usage=${cpu_usage%%.*}  # Витягуємо цілу частину
+    cpu_usage=${cpu_usage%%.*}  
 
     if [ "$cpu_usage" -ge "$usage_threshold" ]; then
         echo "busy"
@@ -71,14 +71,19 @@ manage_containers() {
     start_container "srv1" 0
 
     while true; do
-        # Оновлення контейнерів
+	if docker ps --format "{{.Names}}" | grep -q "srv3"; then
+            if [ "$(check_cpu_usage srv3 10)" == "idle" ]; then
+                stop_container "srv3"
+            fi
+        fi
+        
         update_image
         if [ $? -eq 0 ]; then
             log_message "Restarting containers after image update..."
             start_container "srv1" 0
         fi
 
-        # Моніторинг завантаження CPU
+      
         if [ "$(check_cpu_usage srv1 50)" == "busy" ]; then
             start_container "srv2" 1
         elif docker ps --format "{{.Names}}" | grep -q "srv2"; then
@@ -89,13 +94,7 @@ manage_containers() {
             fi
         fi
 
-        if docker ps --format "{{.Names}}" | grep -q "srv3"; then
-            if [ "$(check_cpu_usage srv3 10)" == "idle" ]; then
-                stop_container "srv3"
-            fi
-        fi
-
-        sleep 120  # Перевірка кожні 2 хвилини
+        sleep 30
     done
 }
 

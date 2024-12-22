@@ -10,12 +10,14 @@ RUN autoreconf -i
 RUN ./configure 
 RUN make
 
+RUN ls -l /server
+
 FROM alpine:latest
+RUN apk add --no-cache libstdc++ libc6-compat
 
 WORKDIR /server
 
 COPY --from=builder /server/server .
 
-RUN apk add --no-cache libstdc++
 
 CMD ["./server"]

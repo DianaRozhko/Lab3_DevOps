@@ -24,7 +24,7 @@ make_requests() {
         send_request "localhost:80/compute" &   
     
         
-        sleep $((RANDOM % 6 + 5))
+        sleep $((RANDOM % 3 + 4))
     done
 }
 
