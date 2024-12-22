@@ -10,22 +10,26 @@ send_request() {
     local server="$1"
     local url="http://$server"
 
-    response=$(curl -s -o /dev/null -w "%{http_code}" "$url")
-    if [ "$response" -eq 200 ]; then
+    response=$(curl -s -o /dev/null -w "%{http_code}" "$url" || echo "error")
+    if [ "$response" == "200" ]; then
         log_message "Server $server responded with status 200 (OK)."
+    elif [ "$response" == "error" ]; then
+        log_message "Error: Could not connect to server $server."
     else
         log_message "Warning: Server $server did not respond correctly (status $response)."
     fi
 }
-
 make_requests() {
+    local server="localhost:80/compute"  
     while true; do
-    
-        send_request "localhost:80/compute" &   
-    
-        
+        send_request "$server" &
         sleep $((RANDOM % 3 + 4))
     done
 }
+
+
+if [ ! -f "$LOG_FILE" ]; then
+    touch "$LOG_FILE"
+fi
 
 make_requests
